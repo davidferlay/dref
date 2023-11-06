@@ -53,48 +53,54 @@ func main() {
 	//fmt.Println(content)
 
 	inputString := content
-	topN := 5
+	substrings := make(map[string]*substringInfo)
 
-	/////////////////////////////////////////////////////////////////////////
-
-	characterCounts := make(map[string]int)
-
-	// Process the string and count character combinations
+	// Create all possible substrings from the inputString
 	for i := 0; i < len(inputString); i++ {
-		for j := i + 1; j <= len(inputString); j++ {
-			substring := inputString[i:j]
-			characterCounts[substring]++
+		for j := i + 2; j <= len(inputString); j++ { // Substrings with more than 1 character
+			substr := inputString[i:j]
+			if info, exists := substrings[substr]; exists {
+				info.Occurrences++
+			} else {
+				substrings[substr] = &substringInfo{
+					Substring:      substr,
+					CharacterCount: len(substr),
+					Occurrences:    1,
+					Points:         len(substr),
+				}
+			}
 		}
 	}
 
-	// Create a slice of character combinations and their counts
-	var characterCountSlice []CharCount
-
-	for combination, count := range characterCounts {
-		points := count * len(combination)
-		characterCountSlice = append(characterCountSlice, CharCount{Combination: combination, Count: count, Points: points})
+	// Convert the map of substrings to a slice for sorting
+	substringSlice := make([]*substringInfo, 0, len(substrings))
+	for _, info := range substrings {
+		substringSlice = append(substringSlice, info)
 	}
 
-	// Sort the slice by Points in descending order
-	sort.Slice(characterCountSlice, func(i, j int) bool {
-		return characterCountSlice[i].Points > characterCountSlice[j].Points
+	// Sort the substrings by Points in descending order
+	sort.Slice(substringSlice, func(i, j int) bool {
+		return substringSlice[i].Points > substringSlice[j].Points
 	})
 
-	// Print the top N combinations of characters with Points
-	fmt.Printf("Top %d combinations of characters that occur the most:\n", topN)
-	for i := 0; i < topN && i < len(characterCountSlice); i++ {
-		fmt.Printf("%s: Character count %d, Count %d, Points %d\n",
-			characterCountSlice[i].Combination, len(characterCountSlice[i].Combination),
-			characterCountSlice[i].Count, characterCountSlice[i].Points)
+	// Print the top 5 substrings with the most Points
+	fmt.Println("Top 5 Substrings:")
+	for i, info := range substringSlice {
+		if i >= 5 {
+			break
+		}
+		fmt.Printf("%d. Substring: %s\n   Character Count: %d\n   Occurrences: %d\n   Points: %d\n",
+			i+1, info.Substring, info.CharacterCount, info.Occurrences, info.Points)
 	}
 
-	println("-end-")
+	println("\n-end-")
 }
 
-type CharCount struct {
-	Combination string
-	Count       int
-	Points      int
+type substringInfo struct {
+	Substring      string
+	CharacterCount int
+	Occurrences    int
+	Points         int
 }
 
 func formatSize(size int64) string {
