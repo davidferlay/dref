@@ -5,8 +5,21 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"sort"
+	"strings"
 )
+
+func formatSize(size int64) string {
+	sizes := []string{"B", "KB", "MB", "GB", "TB"}
+
+	var i int
+	fSize := float64(size)
+	for fSize >= 1024 && i < len(sizes)-1 {
+		fSize /= 1024
+		i++
+	}
+
+	return fmt.Sprintf("%.2f %s", fSize, sizes[i])
+}
 
 func main() {
 	// Check if a filename argument is provided
@@ -53,65 +66,77 @@ func main() {
 	//fmt.Println(content)
 
 	inputString := content
-	substrings := make(map[string]*substringInfo)
 
-	// Create all possible substrings from the inputString
-	for i := 0; i < len(inputString); i++ {
-		for j := i + 2; j <= len(inputString); j++ { // Substrings with more than 1 character
-			substr := inputString[i:j]
-			if info, exists := substrings[substr]; exists {
-				info.Occurrences++
-			} else {
-				substrings[substr] = &substringInfo{
-					Substring:      substr,
-					CharacterCount: len(substr),
-					Occurrences:    1,
-					Points:         len(substr),
-				}
+	findTopSubstrings(inputString)
+
+}
+
+func findTopSubstrings(inputString string) {
+	substringCounts := make(map[string]int)
+	maxLength := 0
+
+	// Iterate through different substring lengths
+	for length := 2; length <= len(inputString)/2; length++ {
+		for i := 0; i <= len(inputString)-length; i++ {
+			substr := inputString[i : i+length]
+			substringCounts[substr]++
+			if length > maxLength {
+				maxLength = length
 			}
 		}
 	}
 
-	// Convert the map of substrings to a slice for sorting
-	substringSlice := make([]*substringInfo, 0, len(substrings))
-	for _, info := range substrings {
-		substringSlice = append(substringSlice, info)
+	var topSubstrings []SubstringInfo
+
+	// Calculate points for each substring
+	for substr, count := range substringCounts {
+		if count > 1 {
+			occurrences := strings.Count(inputString, substr)
+			points := count * occurrences
+			topSubstrings = append(topSubstrings, SubstringInfo{
+				Substring:      substr,
+				CharacterCount: len(substr),
+				Occurrences:    occurrences,
+				Points:         points,
+			})
+		}
 	}
 
-	// Sort the substrings by Points in descending order
-	sort.Slice(substringSlice, func(i, j int) bool {
-		return substringSlice[i].Points > substringSlice[j].Points
-	})
+	// Sort topSubstrings by Points in descending order
+	sortByPoints(topSubstrings)
 
 	// Print the top 5 substrings with the most Points
-	fmt.Println("Top 5 Substrings:")
-	for i, info := range substringSlice {
-		if i >= 5 {
-			break
-		}
-		fmt.Printf("%d. Substring: %s\n   Character Count: %d\n   Occurrences: %d\n   Points: %d\n",
-			i+1, info.Substring, info.CharacterCount, info.Occurrences, info.Points)
+	topCount := 5
+	if len(topSubstrings) < topCount {
+		topCount = len(topSubstrings)
 	}
 
-	println("\n-end-")
+	fmt.Printf("Top %d substrings with the most Points:\n", topCount)
+	for i := 0; i < topCount; i++ {
+		fmt.Printf("Substring: %s, Character count: %d, Occurrences: %d, Points: %d\n",
+			topSubstrings[i].Substring,
+			topSubstrings[i].CharacterCount,
+			topSubstrings[i].Occurrences,
+			topSubstrings[i].Points,
+		)
+	}
 }
 
-type substringInfo struct {
+func sortByPoints(substrings []SubstringInfo) {
+	for i := range substrings {
+		maxIdx := i
+		for j := i + 1; j < len(substrings); j++ {
+			if substrings[j].Points > substrings[maxIdx].Points {
+				maxIdx = j
+			}
+		}
+		substrings[i], substrings[maxIdx] = substrings[maxIdx], substrings[i]
+	}
+}
+
+type SubstringInfo struct {
 	Substring      string
 	CharacterCount int
 	Occurrences    int
 	Points         int
-}
-
-func formatSize(size int64) string {
-	sizes := []string{"B", "KB", "MB", "GB", "TB"}
-
-	var i int
-	fSize := float64(size)
-	for fSize >= 1024 && i < len(sizes)-1 {
-		fSize /= 1024
-		i++
-	}
-
-	return fmt.Sprintf("%.2f %s", fSize, sizes[i])
 }
